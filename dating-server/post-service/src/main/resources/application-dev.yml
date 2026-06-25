@@ -1,0 +1,46 @@
+spring:
+  config:
+    import: nacos:${spring.application.name}-dev.yaml
+  datasource:
+    url: jdbc:postgresql://38.76.188.242:5433/dating-dev-luan?stringtype=unspecified
+    username: jianjian_test
+    password: ${PG_PASSWORD}
+  data:
+    redis:
+      host: 38.76.188.242
+      port: 6380
+      password: ${REDIS_PASSWORD}
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 38.76.188.242:8848
+        namespace: dev-luan
+        username: nacos
+        password: ${NACOS_PASSWORD}
+      config:
+        server-addr: 38.76.188.242:8848
+        namespace: dev-luan
+        username: nacos
+        password: ${NACOS_PASSWORD}
+
+# Nacos dev profile overrides for passwords/credentials
+# All values below are shared dev credentials per dev-onboarding.md
+app:
+  cache:
+    key-prefix: luan
+  snowflake:
+    worker-id: ${SNOWFLAKE_WORKER_ID:1}
+
+rocketmq:
+  name-server: 38.76.188.242:9876
+  producer:
+    group: youjianxin-dating-dev-post-service-producer
+    access-key: ${ROCKETMQ_ACCESS_KEY}
+    secret-key: ${ROCKETMQ_SECRET_KEY}
+
+dating:
+  object-storage:
+    endpoint: https://minio-api.jianjiange.site
+    access-key: ${MINIO_ACCESS_KEY}
+    secret-key: ${MINIO_SECRET_KEY}
+    bucket: dating-luan

@@ -1,0 +1,225 @@
+syntax = "proto3";
+
+package com.dating.post;
+
+option java_package = "com.dating.luan.proto.post";
+option java_multiple_files = true;
+option java_outer_classname = "PostProto";
+
+// ──────────────────────────────────────────────
+// Common messages
+// ──────────────────────────────────────────────
+
+// Unified response wrapper. All RPCs return gRPC OK; business errors go in code field.
+message BaseResponse {
+  int32 code = 1;       // 0 = success; see error code table
+  string message = 2;   // human-readable description
+  string extra = 3;     // optional extra payload (e.g. debugging info)
+}
+
+// ──────────────────────────────────────────────
+// Enums
+// ──────────────────────────────────────────────
+
+enum LikeAction {
+  LIKE = 0;
+  UNLIKE = 1;
+}
+
+enum PostStatus {
+  DELETED = 0;
+  NORMAL = 1;
+  REVIEWING = 2;
+}
+
+// ──────────────────────────────────────────────
+// Post detail (shared across multiple RPC responses)
+// ──────────────────────────────────────────────
+
+message PostInfo {
+  int64 post_id = 1;
+  int64 user_id = 2;
+  string content = 3;
+  repeated string image_keys = 4;
+  int32 like_count = 5;
+  int32 comment_count = 6;
+  int64 created_at = 7;  // epoch seconds (UTC)
+  int32 status = 8;       // PostStatus enum value
+}
+
+message CommentInfo {
+  int64 comment_id = 1;
+  int64 post_id = 2;
+  int64 user_id = 3;
+  int64 root_id = 4;
+  int64 parent_id = 5;
+  int64 reply_to_user_id = 6;
+  string content = 7;
+  int32 status = 8;
+  int64 created_at = 9;   // epoch seconds (UTC)
+}
+
+// ──────────────────────────────────────────────
+// 1. CreatePost
+// ──────────────────────────────────────────────
+
+message CreatePostRequest {
+  string content = 1;                 // 1–1024 chars
+  repeated string image_keys = 2;     // ≤ 9 keys, presigned-uploaded
+}
+
+message CreatePostResponse {
+  BaseResponse base = 1;
+  int64 post_id = 2;
+}
+
+// ──────────────────────────────────────────────
+// 2. GetPostDetail
+// ──────────────────────────────────────────────
+
+message GetPostDetailRequest {
+  int64 post_id = 1;
+}
+
+message GetPostDetailResponse {
+  BaseResponse base = 1;
+  PostInfo post = 2;
+}
+
+// ──────────────────────────────────────────────
+// 3. ListUserPosts
+// ──────────────────────────────────────────────
+
+message ListUserPostsRequest {
+  int64 user_id = 1;       // target user whose posts to list
+  int32 page_size = 2;     // default 10, max 50
+  int64 cursor = 3;        // post_id cursor, 0 = first page
+}
+
+message ListUserPostsResponse {
+  BaseResponse base = 1;
+  repeated PostInfo items = 2;
+  int64 next_cursor = 3;   // 0 means no more
+  bool has_more = 4;
+}
+
+// ──────────────────────────────────────────────
+// 4. ActionLike
+// ──────────────────────────────────────────────
+
+message ActionLikeRequest {
+  int64 post_id = 1;
+  LikeAction action = 2;
+}
+
+message ActionLikeResponse {
+  BaseResponse base = 1;
+  bool success = 2;
+}
+
+// ──────────────────────────────────────────────
+// 5. CreateComment
+// ──────────────────────────────────────────────
+
+message CreateCommentRequest {
+  int64 post_id = 1;
+  string content = 2;              // 1–512 chars
+  int64 root_id = 3;               // 0 for top-level comment (楼中楼 reserved)
+  int64 parent_id = 4;             // 0 for top-level comment
+  int64 reply_to_user_id = 5;      // 0 for top-level comment
+}
+
+message CreateCommentResponse {
+  BaseResponse base = 1;
+  int64 comment_id = 2;
+}
+
+// ──────────────────────────────────────────────
+// 6. ListComments
+// ──────────────────────────────────────────────
+
+message ListCommentsRequest {
+  int64 post_id = 1;
+  int32 page_size = 2;    // default 10, max 50
+  int64 cursor = 3;       // comment_id cursor, 0 = first page
+}
+
+message ListCommentsResponse {
+  BaseResponse base = 1;
+  repeated CommentInfo items = 2;
+  int64 next_cursor = 3;  // 0 means no more
+  bool has_more = 4;
+}
+
+// ──────────────────────────────────────────────
+// 7. DeleteComment
+// ──────────────────────────────────────────────
+
+message DeleteCommentRequest {
+  int64 comment_id = 1;
+}
+
+message DeleteCommentResponse {
+  BaseResponse base = 1;
+  bool success = 2;
+}
+
+// ──────────────────────────────────────────────
+// 8. DeletePost
+// ──────────────────────────────────────────────
+
+message DeletePostRequest {
+  int64 post_id = 1;
+}
+
+message DeletePostResponse {
+  BaseResponse base = 1;
+  bool success = 2;
+}
+
+// ──────────────────────────────────────────────
+// 9. GetRecommendFeed
+// ──────────────────────────────────────────────
+
+message GetRecommendFeedRequest {
+  int32 page_size = 1;    // default 10, max 50
+  string cursor = 2;      // "recOffset:csOffset" format, "0:0" = first page
+}
+
+message GetRecommendFeedResponse {
+  BaseResponse base = 1;
+  repeated PostInfo items = 2;
+  string next_cursor = 3; // "recOffset:csOffset" for next page
+  bool has_more = 4;
+}
+
+// ──────────────────────────────────────────────
+// gRPC Service definition
+// ──────────────────────────────────────────────
+
+service PostService {
+  rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
+  rpc GetPostDetail(GetPostDetailRequest) returns (GetPostDetailResponse);
+  rpc ListUserPosts(ListUserPostsRequest) returns (ListUserPostsResponse);
+  rpc ActionLike(ActionLikeRequest) returns (ActionLikeResponse);
+  rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse);
+  rpc ListComments(ListCommentsRequest) returns (ListCommentsResponse);
+  rpc DeleteComment(DeleteCommentRequest) returns (DeleteCommentResponse);
+  rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+  rpc GetRecommendFeed(GetRecommendFeedRequest) returns (GetRecommendFeedResponse);
+}
+
+// ──────────────────────────────────────────────
+// Error codes (documentation only, not compiled)
+// ──────────────────────────────────────────────
+//  0    OK
+//  4001 content is empty
+//  4002 content too long (>1024)
+//  4003 too many images (>9)
+//  4004 image key is empty
+//  4005 post not found
+//  4006 comment not found
+//  4007 comment content is empty
+//  4008 comment content too long (>512)
+//  4030 permission denied
+//  5000 internal error

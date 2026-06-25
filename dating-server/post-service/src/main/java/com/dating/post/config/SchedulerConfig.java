@@ -1,0 +1,25 @@
+package com.dating.post.config;
+
+import net.javacrumbs.shedlock.core.LockProvider;
+import net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateLockProvider;
+import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+import javax.sql.DataSource;
+
+/**
+ * Scheduler configuration with ShedLock for multi-instance job mutex.
+ * ShedLock is decorative in single-instance dev but required for multi-replica deploys.
+ */
+@Configuration
+@EnableScheduling
+@EnableSchedulerLock(defaultLockAtMostFor = "PT2M")
+public class SchedulerConfig {
+
+    @Bean
+    public LockProvider lockProvider(DataSource dataSource) {
+        return new JdbcTemplateLockProvider(dataSource);
+    }
+}

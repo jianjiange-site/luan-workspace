@@ -24,6 +24,7 @@
 - [`docs/student-dev-guide.md`](docs/student-dev-guide.md) — 后端开发总规范，技术栈、Git、目录、红线全在这里
 - [`docs/dev-onboarding.md`](docs/dev-onboarding.md) — 接入共享基建（远端 `38.76.188.242`）的连接配置 + 凭据
 - [`docs/local-infra-setup.md`](docs/local-infra-setup.md) — 在本机用 Docker 起一套自用中间件
+（由于基建全部连接到远端，所以本机不必用docker起中间件，本文档可以忽略）
 - [`docs/post-service-design.md`](docs/post-service-design.md) — post-service 业务设计草案
 
 ## 硬约束（违反一票否决）
