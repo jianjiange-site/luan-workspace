@@ -1,0 +1,94 @@
+spring:
+  application:
+    name: dating-match-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 8
+      minimum-idle: 2
+      connection-init-sql: SET TIME ZONE 'UTC'
+  data:
+    redis:
+      timeout: 3s
+      database: 1
+  cloud:
+    nacos:
+      discovery:
+        group: DEFAULT_GROUP
+      config:
+        group: DEFAULT_GROUP
+        file-extension: yaml
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    table: flyway_history_match
+
+server:
+  port: ${SERVER_PORT:8080}
+
+grpc:
+  server:
+    port: ${GRPC_PORT:9090}
+  client:
+    user-service:
+      address: discovery:///user-service
+      negotiation-type: plaintext
+    payment-service:
+      address: discovery:///payment-service
+      negotiation-type: plaintext
+    im-service:
+      address: discovery:///im-service
+      negotiation-type: plaintext
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.dating.match.entity
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+app:
+  cache:
+    key-prefix: ${REDIS_KEY_PREFIX:luan}
+  snowflake:
+    worker-id: ${SNOWFLAKE_WORKER_ID:2}
+  match:
+    super-hi-coin-price: 100
+    d1-feed-size: 240
+    d0-feed-size: 240
+    cold-start:
+      bh-ratio: 0.20
+      bh:
+        radius-km: 100
+        age-window: 5
+        beauty-window: 15
+        active-days: 7
+    d1:
+      bh-ratio: 0.40
+      preference-enabled: true
+      preference-offset: 0.20
+    score:
+      new-bh-window-days: 3
+      new-bh-bonus: 0.20
+      mutual-like-bonus: 0.20
+    dh-plan:
+      online-count-range: [5,10]
+      offline-count-range: [3,6]
+      online-cooldown-seconds: 7200
+      offline-threshold-seconds: 1200
+      offline-lookback-seconds: 10800
+      online-execute-window-min: 30
+      offline-execute-window-min: 30
+      visit-ratio: 0.6
+      daily-dh-like-cap: 15
+      daily-dh-visit-cap: 25
+      like-content-templates: '[{"content":"你的笑容让我心动了","gender_pref":"ANY"},{"content":"你的眼睛很迷人","gender_pref":"ANY"}]'
+
+logging:
+  level:
+    com.dating.match: DEBUG

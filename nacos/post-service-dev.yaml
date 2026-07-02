@@ -1,0 +1,41 @@
+# ============================================================
+# Nacos 远程配置 — dating-post-service-dev.yaml
+# Data ID: dating-post-service-dev.yaml
+# Group:  DEFAULT_GROUP
+# Namespace: dev-luan
+# ============================================================
+# 复制全部内容到 Nacos 控制台：
+#   http://38.76.188.242:8848/nacos
+#   配置管理 → 配置列表 → 右上角选命名空间 dev-luan → 新建配置
+# ============================================================
+
+spring:
+  datasource:
+    url: jdbc:postgresql://38.76.188.242:5433/dating-dev-luan?stringtype=unspecified
+    username: jianjian_test
+    password: MpR5rGjss2Ly6vJFAhaxAwNqVAGVoP7V
+  data:
+    redis:
+      host: 38.76.188.242
+      port: 6380
+      password: sNuP9gZScsj88QbEyTujffOvRCCH9Kv1
+
+rocketmq:
+  name-server: 38.76.188.242:9876
+  producer:
+    group: youjianxin-dating-dev-post-service-producer
+    access-key: rocketmq-student
+    secret-key: 5cafa390b8a42c25
+
+dating:
+  object-storage:
+    endpoint: https://minio-api.jianjiange.site
+    access-key: admin
+    secret-key: GorLDkuOhGyK5c1RXh2gaPooXgtso/MR
+    bucket: dating-luan
+
+app:
+  cache:
+    key-prefix: luan
+  snowflake:
+    worker-id: 1

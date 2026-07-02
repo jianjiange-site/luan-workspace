@@ -1,0 +1,223 @@
+syntax = "proto3";
+
+package match;
+
+option java_package = "com.dating.luan.proto.match";
+option java_multiple_files = true;
+option java_outer_classname = "MatchProto";
+
+// ──────────────────────────────────────────────
+// Common messages
+// ──────────────────────────────────────────────
+
+message BaseResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+// ──────────────────────────────────────────────
+// Enums
+// ──────────────────────────────────────────────
+
+enum SwipeDirection {
+  SWIPE_UNSPECIFIED = 0;
+  LEFT = 1;
+  RIGHT = 2;
+}
+
+// ──────────────────────────────────────────────
+// 1. GetTodayFeed — pull next batch of cards
+// ──────────────────────────────────────────────
+
+message GetTodayFeedReq {
+  int64 user_id = 1;
+  int32 count = 2; // ≤ 20, mobile side fixed 5
+}
+
+message GetTodayFeedResp {
+  BaseResponse base = 1;
+  repeated Card cards = 2;
+  bool exhausted = 3;
+}
+
+message Card {
+  int64 target_user_id = 1;
+  int32 target_user_type = 2; // 1=BH 2=DH
+  string nickname = 3;
+  int32 age = 4;
+  repeated string photo_keys = 5;
+  string bio = 6;
+  double distance_km = 7; // BH only; DH = -1
+}
+
+// ──────────────────────────────────────────────
+// 2. Swipe — submit a swipe action
+// ──────────────────────────────────────────────
+
+message SwipeReq {
+  int64 user_id = 1;
+  int64 target_user_id = 2;
+  SwipeDirection direction = 3;
+}
+
+message SwipeResp {
+  BaseResponse base = 1;
+  int64 match_id = 2; // > 0 if match created (BH mutual right-swipe); 0 otherwise
+}
+
+// ──────────────────────────────────────────────
+// 3. SuperHi — premium instant match
+// ──────────────────────────────────────────────
+
+message SuperHiReq {
+  int64 user_id = 1;
+  int64 target_user_id = 2;
+}
+
+message SuperHiResp {
+  BaseResponse base = 1;
+  int64 match_id = 2; // > 0 if match created; 0 on idempotent replay
+  int32 coins_used = 4; // > 0 if coins were consumed; 0 if subscription gift
+}
+
+// ──────────────────────────────────────────────
+// 4. ListMatches — my match list
+// ──────────────────────────────────────────────
+
+message ListMatchesReq {
+  int64 user_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListMatchesResp {
+  BaseResponse base = 1;
+  repeated MatchVO matches = 2;
+  string next_page_token = 3;
+}
+
+message MatchVO {
+  int64 match_id = 1;
+  int64 partner_user_id = 2;
+  string partner_nickname = 3;
+  repeated string partner_photo_keys = 4;
+  int64 matched_at_unix_ms = 5;
+  string source = 6; // SWIPE_MATCH / SWIPE_SUPER_HI
+}
+
+// ──────────────────────────────────────────────
+// 5. GetQuota — current daily quota
+// ──────────────────────────────────────────────
+
+message GetQuotaReq {
+  int64 user_id = 1;
+}
+
+message GetQuotaResp {
+  BaseResponse base = 1;
+  int32 daily_right_swipe_limit = 2;
+  int32 daily_right_swipe_used = 3;
+  int32 daily_card_limit = 4;
+  int32 daily_card_used = 5;
+  int32 daily_super_hi_limit = 6;
+  int32 daily_super_hi_used = 7;
+  int32 super_hi_coin_price = 8; // 100
+  string subscription_tier = 9; // FREE/WEEKLY/MONTHLY/YEARLY
+}
+
+// ──────────────────────────────────────────────
+// 6. ListLikesOfMe — who liked me
+// ──────────────────────────────────────────────
+
+message ListLikesOfMeReq {
+  int64 user_id = 1;
+  int32 page_size = 2; // ≤ 50
+  string page_token = 3;
+}
+
+message ListLikesOfMeResp {
+  BaseResponse base = 1;
+  repeated LikeVO likes = 2;
+  string next_page_token = 3;
+  int32 total_unread = 4;
+}
+
+message LikeVO {
+  int64 from_user_id = 1;
+  string nickname = 2;
+  int32 age = 3;
+  repeated string photo_keys = 4;
+  int64 liked_at_unix_ms = 5;
+  string like_content = 6; // DH task content; empty for real user swipe
+}
+
+// ──────────────────────────────────────────────
+// 7. ListVisitsOfMe — who visited me
+// ──────────────────────────────────────────────
+
+message ListVisitsOfMeReq {
+  int64 user_id = 1;
+  int32 page_size = 2; // ≤ 50
+  string page_token = 3;
+}
+
+message ListVisitsOfMeResp {
+  BaseResponse base = 1;
+  repeated VisitVO visits = 2;
+  string next_page_token = 3;
+  int32 total_unread = 4;
+}
+
+message VisitVO {
+  int64 from_user_id = 1;
+  string nickname = 2;
+  int32 age = 3;
+  repeated string photo_keys = 4;
+  int64 visited_at_unix_ms = 5;
+  int32 visit_count = 6;
+}
+
+// ──────────────────────────────────────────────
+// 8. RecordVisit — report profile visit
+// ──────────────────────────────────────────────
+
+message RecordVisitReq {
+  int64 viewer_user_id = 1;
+  int64 target_user_id = 2;
+}
+
+message RecordVisitResp {
+  BaseResponse base = 1;
+  bool ok = 2; // ok = received (async write, failure only logs WARN)
+}
+
+// ──────────────────────────────────────────────
+// gRPC Service definition
+// ──────────────────────────────────────────────
+
+service MatchService {
+  rpc GetTodayFeed(GetTodayFeedReq) returns (GetTodayFeedResp);
+  rpc Swipe(SwipeReq) returns (SwipeResp);
+  rpc SuperHi(SuperHiReq) returns (SuperHiResp);
+  rpc ListMatches(ListMatchesReq) returns (ListMatchesResp);
+  rpc GetQuota(GetQuotaReq) returns (GetQuotaResp);
+  rpc ListLikesOfMe(ListLikesOfMeReq) returns (ListLikesOfMeResp);
+  rpc ListVisitsOfMe(ListVisitsOfMeReq) returns (ListVisitsOfMeResp);
+  rpc RecordVisit(RecordVisitReq) returns (RecordVisitResp);
+}
+
+// ──────────────────────────────────────────────
+// Error codes (documentation only)
+// ──────────────────────────────────────────────
+//  0     OK
+//  4001  user_id is required
+//  4002  target_user_id is required
+//  4003  invalid swipe direction
+//  4004  page_size exceeds limit
+//  4101  QUOTA_RIGHT_SWIPE_EXCEEDED
+//  4102  QUOTA_CARDS_EXCEEDED
+//  4103  QUOTA_SUPER_HI_EXCEEDED
+//  4104  INSUFFICIENT_COINS
+//  4105  CONCURRENT_SWIPE
+//  4030  permission denied
+//  5000  internal error
